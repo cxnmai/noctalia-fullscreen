@@ -35,7 +35,9 @@ pub fn send(fd: c_int, bytes: []const u8) !void {
 
 pub const Buffer = struct {
     bytes: std.ArrayList(u8) = .empty,
-    pub fn deinit(self: *Buffer) void { self.bytes.deinit(allocator); }
+    pub fn deinit(self: *Buffer) void {
+        self.bytes.deinit(allocator);
+    }
     pub fn receive(self: *Buffer, fd: c_int, flags: c_int) !bool {
         var chunk: [8192]u8 = undefined;
         const n = c.recv(fd, &chunk, chunk.len, flags);

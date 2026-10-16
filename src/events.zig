@@ -23,7 +23,10 @@ pub fn apply(state: *model.State, event: Value) !bool {
         const target = model.id(get(activated, "id"));
         var output: ?model.Name = null;
         for (state.workspaces.items) |workspace| {
-            if (workspace.id == target) { output = workspace.output; break; }
+            if (workspace.id == target) {
+                output = workspace.output;
+                break;
+            }
         }
         if (output) |name| {
             for (state.workspaces.items) |*workspace| {

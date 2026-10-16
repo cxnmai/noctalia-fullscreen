@@ -19,10 +19,14 @@ pub const Commands = struct {
         });
         defer std.heap.c_allocator.free(result.stdout);
         defer std.heap.c_allocator.free(result.stderr);
-        const ok = switch (result.term) { .Exited => |code| code == 0, else => false };
+        const ok = switch (result.term) {
+            .Exited => |code| code == 0,
+            else => false,
+        };
         // Some CLI versions return success while printing an IPC error.
         if (!ok or std.mem.startsWith(u8, result.stdout, "error:") or
-            std.mem.startsWith(u8, result.stderr, "error:")) {
+            std.mem.startsWith(u8, result.stderr, "error:"))
+        {
             std.debug.print("Noctalia command failed: {s}{s}\n", .{ result.stdout, result.stderr });
             return error.NoctaliaCommandFailed;
         }

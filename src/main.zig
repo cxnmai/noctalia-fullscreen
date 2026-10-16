@@ -5,7 +5,9 @@ const events = @import("events.zig");
 const Commands = @import("commands.zig").Commands;
 const c = ipc.c;
 var stopping: bool = false;
-fn stop(_: c_int) callconv(.c) void { @atomicStore(bool, &stopping, true, .unordered); }
+fn stop(_: c_int) callconv(.c) void {
+    @atomicStore(bool, &stopping, true, .unordered);
+}
 
 const help =
     \\Usage: noctalia-fullscreen [--bar NAME] [--noctalia PATH] [--dry-run] [--reset]
@@ -35,9 +37,11 @@ fn run() !void {
     while (index < args.len) : (index += 1) {
         const arg = args[index];
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
-            std.debug.print("{s}", .{help}); return;
+            std.debug.print("{s}", .{help});
+            return;
         } else if (std.mem.eql(u8, arg, "--version")) {
-            std.debug.print("noctalia-fullscreen 0.1.0\n", .{}); return;
+            std.debug.print("noctalia-fullscreen 0.1.0\n", .{});
+            return;
         } else if (std.mem.eql(u8, arg, "--dry-run")) {
             commands.dry_run = true;
         } else if (std.mem.eql(u8, arg, "--reset")) {

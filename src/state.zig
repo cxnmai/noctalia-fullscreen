@@ -11,8 +11,12 @@ pub const Name = struct {
         @memcpy(name.bytes[0..s.len], s);
         return name;
     }
-    pub fn slice(self: *const Name) []const u8 { return self.bytes[0..self.len]; }
-    pub fn eql(a: *const Name, b: *const Name) bool { return std.mem.eql(u8, a.slice(), b.slice()); }
+    pub fn slice(self: *const Name) []const u8 {
+        return self.bytes[0..self.len];
+    }
+    pub fn eql(a: *const Name, b: *const Name) bool {
+        return std.mem.eql(u8, a.slice(), b.slice());
+    }
 };
 pub const Output = struct {
     name: Name,
@@ -57,7 +61,10 @@ pub const State = struct {
                 .size = .{ number(get(logical, "width")), number(get(logical, "height")) },
             };
             for (self.outputs.items) |old| {
-                if (old.name.eql(&output.name)) { output.applied = old.applied; break; }
+                if (old.name.eql(&output.name)) {
+                    output.applied = old.applied;
+                    break;
+                }
             }
             try next.append(self.allocator, output);
         }
@@ -71,7 +78,10 @@ pub const State = struct {
             .size = size(get(value, "layout")),
         };
         for (self.windows.items) |*old| {
-            if (old.id == window.id) { old.* = window; return; }
+            if (old.id == window.id) {
+                old.* = window;
+                return;
+            }
         }
         try self.windows.append(self.allocator, window);
     }
@@ -80,10 +90,18 @@ pub const State = struct {
 pub fn get(value: Value, key: []const u8) Value {
     return if (value == .object) value.object.get(key) orelse .null else .null;
 }
-pub fn id(value: Value) u64 { return @intCast(value.integer); }
-pub fn optionalId(value: Value) ?u64 { return if (value == .null) null else id(value); }
+pub fn id(value: Value) u64 {
+    return @intCast(value.integer);
+}
+pub fn optionalId(value: Value) ?u64 {
+    return if (value == .null) null else id(value);
+}
 pub fn number(value: Value) f64 {
-    return switch (value) { .integer => @floatFromInt(value.integer), .float => value.float, else => 0 };
+    return switch (value) {
+        .integer => @floatFromInt(value.integer),
+        .float => value.float,
+        else => 0,
+    };
 }
 pub fn size(layout: Value) [2]f64 {
     const values = get(layout, "tile_size").array.items;
