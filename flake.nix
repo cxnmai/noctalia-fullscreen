@@ -5,6 +5,7 @@
     systems = [ "x86_64-linux" "aarch64-linux" ];
     eachSystem = nixpkgs.lib.genAttrs systems;
   in {
+    homeManagerModules.default = import ./nix/home-manager.nix self;
     packages = eachSystem (system: let pkgs = import nixpkgs { inherit system; }; in {
       default = pkgs.callPackage ./package.nix { };
     });
