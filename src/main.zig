@@ -4,10 +4,7 @@ const model = @import("state.zig");
 const events = @import("events.zig");
 const Commands = @import("commands.zig").Commands;
 const c = ipc.c;
-var stopping: bool = false;
-fn stop(_: c_int) callconv(.c) void {
-    @atomicStore(bool, &stopping, true, .unordered);
-}
+const signals = @import("signals.zig");
 
 const help =
     \\Usage: noctalia-fullscreen [--bar NAME] [--noctalia PATH] [--dry-run] [--reset]
@@ -15,6 +12,7 @@ const help =
     \\Requires reserve_space=true and a nonzero bar size; no polling.
     \\--dry-run  Log commands without changing the bar
     \\--reset    Restore Off/Top on connected monitors and exit
+    \\SIGHUP     Reapply state after a Noctalia config reload
     \\--version  Print version
     \\
 ;
@@ -62,21 +60,31 @@ fn run() !void {
     const fd = try ipc.connect();
     defer _ = c.close(fd);
     try ipc.send(fd, "\"EventStream\"\n");
-    _ = c.signal(c.SIGTERM, stop);
-    _ = c.signal(c.SIGINT, stop);
+    const signal_fd = try signals.init();
+    defer signals.deinit();
     defer commands.restore(&state);
     var buffer = ipc.Buffer{};
     defer buffer.deinit();
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
-    while (!@atomicLoad(bool, &stopping, .unordered)) {
-        var pollfd = c.struct_pollfd{ .fd = fd, .events = c.POLLIN, .revents = 0 };
-        const ready = c.poll(&pollfd, 1, -1);
+    while (true) {
+        var pollfds = [_]c.struct_pollfd{
+            .{ .fd = fd, .events = c.POLLIN, .revents = 0 },
+            .{ .fd = signal_fd, .events = c.POLLIN, .revents = 0 },
+        };
+        const ready = c.poll(&pollfds, pollfds.len, -1);
         if (ready < 0) {
             if (std.posix.errno(ready) == .INTR) continue;
             return error.PollFailed;
         }
-        if (pollfd.revents & (c.POLLERR | c.POLLHUP | c.POLLNVAL) != 0) return error.Disconnected;
+        if (pollfds[1].revents & c.POLLIN != 0) {
+            const pending = signals.take();
+            if (pending & signals.quit != 0) break;
+            if (pending & signals.resync != 0) {
+                for (state.outputs.items) |*output| output.applied = null;
+            }
+        }
+        if (pollfds[0].revents & (c.POLLERR | c.POLLHUP | c.POLLNVAL) != 0) return error.Disconnected;
         var refresh = false;
         // Drain a complete available batch before applying, avoiding intermediate focus states.
         while (try buffer.receive(fd, c.MSG_DONTWAIT)) {
