@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) void {
     if (b.args) |args| run.addArgs(args);
     b.step("run", "Run the helper").dependOn(&run.step);
     const tests = b.addTest(.{ .root_module = b.createModule(.{
-        .root_source_file = b.path("src/state.zig"),
+        .root_source_file = b.path("src/tests.zig"),
         .target = target,
         .optimize = optimize,
     }) });
